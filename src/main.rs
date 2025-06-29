@@ -1,13 +1,9 @@
 use alsa::{Direction, ValueOr};
 use alsa::pcm::{PCM, HwParams, Format, Access, State};
 use std::f32::consts::PI;
-use textplots::{self, Chart, Plot, Shape};
+use textplots::{self, AxisBuilder, Chart, Plot, Shape, LineStyle};
 
-const BUFSIZE: usize = (2.0 * PI) as usize;
 
-// should be a factor of BUFSIZE otherwise you get distortion
-// due to the period of the wave function not lining cleanly up with the BUFSIZE
-const COMPRESSION: u32 = 128; 
 
 const SAMPLE_RATE: u32 = 44_100;
 
@@ -16,11 +12,11 @@ struct Playback {
 }
 
 impl Playback {
-    fn setup_pcm()-> Playback {
+    fn new()-> Playback {
         let pcm = PCM::new("default", Direction::Playback, false).unwrap();
         // Open default playback device
         {
-            // Set hardware parameters: 44100 Hz / Mono / 16 bit
+            // Set hardware parameters: 44,100 Hz / Mono / 16 bit
             let hwp = HwParams::any(&pcm).unwrap();
             hwp.set_channels(1).unwrap();
             hwp.set_rate(SAMPLE_RATE, ValueOr::Nearest).unwrap();
@@ -37,14 +33,24 @@ impl Playback {
         Playback {pcm}
     }
     
-    fn _write_buf(&mut self, buf: &[i16]) {
-        let io = self.pcm.io_i16().unwrap();
-        assert_eq!(io.writei(&buf[..]).unwrap(), BUFSIZE);
-    }
+    // fn _write_buf(&mut self, buf: &[i16]) {
+    //     let io = self.pcm.io_i16().unwrap();
+    //     assert_eq!(io.writei(&buf[..]).unwrap(), 1);
+    // }
 
     fn write_wave<T: Wave>(&mut self, wave: &T) {
         let io = self.pcm.io_i16().unwrap();
-        assert_eq!(io.writei(&wave.wave_buffer()).unwrap(), BUFSIZE);
+
+        let num_samples = wave.duration() as u32 * SAMPLE_RATE;
+
+        // let mut buf = Vec::<i16>::with_capacity(buf_size as usize);
+        let mut i = 0;
+        while i < num_samples {
+            let sample = wave.wave_func(i as f32, SAMPLE_RATE) as i16;
+            // could optimize to write in chunks but probably don't need to yet
+            assert_eq!(io.writei(&[sample]).unwrap(), 1);
+            i += 1;
+        }
     }
 
     fn play(&mut self) {
@@ -56,58 +62,95 @@ impl Playback {
 }
 
 pub trait Wave {
-    fn wave_func(&self, x: f32) -> f32;
+    fn wave_func(&self, x: f32, sample_rate: u32) -> f32;
     
-    fn wave_buffer<'a>(self: &'a Self) -> Box<[i16]>;
+    // fn wave_buffer(self: &Self) -> Vec<i16>;
+
+     fn duration(self: &Self) -> f32;
 }
 
 impl Wave for SinWave {
-    fn wave_func(&self, x: f32) -> f32 {
-        self.amplitude * (self.period / (2.0 * PI) * x).sin()
-        // ((x * self.freq * PI ) / self.funk).sin() * self.amp
+    fn wave_func(&self, x: f32, sample_rate: u32) -> f32 {
+        self.amplitude * 
+            (
+                (
+                    (2.0 * PI * self.frequncy) / sample_rate as f32
+                )  * x
+            ).sin()
     }
 
-    fn wave_buffer(&self) -> Box<[i16]> {
-        let mut buf = [0i16; BUFSIZE];
-        for (i, a) in buf.iter_mut().enumerate() {
-            *a = self.wave_func(i as f32) as i16;
-        }
-        Box::new(buf)
+    fn duration(self: &Self) -> f32 {
+        self.duration
     }
 }
 
 
 pub struct SinWave {
-    period: f32,
+    frequncy: f32,
     amplitude: f32,
-    funk: f32,
+    duration: f32,
 }
 
 impl Default for SinWave {
     fn default() -> Self {
         SinWave {
-            funk: COMPRESSION as f32 ,
-            // 1.5 Min freq before period misaligns wiht BUFSIZE causing a more sawtooth like sound
-            period: 14.0, 
-            amplitude: 10_000.0
+            // 240 Min freq with my shiddy speakers
+            // 30 min freq with headset
+            frequncy: Notes::A.freq(), 
+            amplitude: 8_000.0, // with i_16 max is ((2^16) / 2) -1 = 32,767
+            duration: 2.0,
+        }
+    }
+}
+
+enum Notes {
+    C,
+    Cs,
+    D,
+    Ds,
+    E,
+    F,
+    Fs,
+    G,
+    Gs,
+    A,
+    As,
+    B,
+}
+
+impl Notes {
+    fn freq(&self) -> f32 {
+        match self {
+            Self::C => 261.63,
+            Self::Cs => 277.18,
+            Self::D => 293.66,
+            Self::Ds => 311.13,
+            Self::E => 329.63,
+            Self::F => 349.23,
+            Self::Fs => 369.99,
+            Self::G => 392.00,
+            Self::Gs => 415.30,
+            Self::A => 440.00,
+            Self::As =>466.16,
+            Self::B => 493.88,
         }
     }
 }
 
 
-
 fn main() {
-    let mut playback = Playback::setup_pcm();
+    let mut playback = Playback::new();
 
-    // Play it back for 2 seconds.
-    for _ in 0..2*SAMPLE_RATE/(BUFSIZE as u32) {
-        playback.write_wave(&SinWave::default());
-    }
+    let my_wave: SinWave = SinWave::default();
+
+    playback.write_wave(&my_wave);
     
     // Plot it to terminal
-    Chart::new(200, 20, 0.0, COMPRESSION as f32)
+    Chart::new(200, 10, 0.0, 0.5)
+        .x_axis_style(LineStyle::None)
+        .y_axis_style(LineStyle::None)
         .lineplot(&Shape::Continuous(
-            Box::new(|x| {SinWave::default().wave_func(x)})))
+            Box::new(|x| {my_wave.wave_func(x, 1)})))
         .display();
 
 
