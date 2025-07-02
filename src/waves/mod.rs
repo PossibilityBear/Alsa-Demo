@@ -1,18 +1,13 @@
 use std::fmt::Debug;
-
-
+pub mod sin_wave;
 
 pub trait Wave {
     fn wave_func(&self, x: f32, sample_rate: u32) -> f32;
-    
+
     // fn wave_buffer(self: &Self) -> Vec<i16>;
 
     fn duration(self: &Self) -> f32;
 }
-
-pub mod sin_wave;
-
-
 
 #[derive(Clone, Copy, Debug)]
 pub struct GenWaveSettings {
@@ -23,8 +18,8 @@ pub struct GenWaveSettings {
 }
 
 impl GenWaveSettings {
-    fn new( freq: f32, dur: f32, amp: f32, sample_rate: u32 ) -> Self {
-        Self { 
+    fn new(freq: f32, dur: f32, amp: f32, sample_rate: u32) -> Self {
+        Self {
             freq,
             dur,
             amp,
@@ -46,17 +41,17 @@ impl Debug for GenWave {
 }
 
 impl GenWave {
-    pub fn new (
+    pub fn new(
         wave_func: impl Fn(&GenWaveSettings, f32) -> i16 + 'static,
-        settings: GenWaveSettings
+        settings: GenWaveSettings,
     ) -> Self {
         Self {
             settings,
-            wave_func: Box::new(wave_func)
+            wave_func: Box::new(wave_func),
         }
     }
 
-    pub fn call_wave_func(&self, x: f32) -> i16{
+    pub fn call_wave_func(&self, x: f32) -> i16 {
         (self.wave_func)(&self.settings, x)
     }
 }

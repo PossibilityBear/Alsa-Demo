@@ -1,10 +1,10 @@
 mod waves;
 mod notes;
 mod playback;
-mod app;
-mod wave_widget;
+mod ui_controllers;
 use playback::Playback;
-use crate::{app::App,};
+use crate::ui_controllers::app::App;
+use crate::ui_controllers::wave_widget::WaveWidget;
 use ratatui;
 
 const WAVE_CHAR_HEIGHT: u32 = 7;

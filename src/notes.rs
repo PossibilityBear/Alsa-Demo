@@ -16,7 +16,6 @@ pub enum Notes {
     B,
 }
 
-
 impl Notes {
     pub fn freq(&self) -> f32 {
         match self {
@@ -30,24 +29,25 @@ impl Notes {
             Self::G => 392.00,
             Self::Gs => 415.30,
             Self::A => 440.00,
-            Self::As =>466.16,
+            Self::As => 466.16,
             Self::B => 493.88,
         }
     }
 
     pub fn scale() -> Vec<Notes> {
-        vec![Self::C  ,
-             Self::Cs ,
-             Self::D  ,
-             Self::Ds ,
-             Self::E  ,
-             Self::F  ,
-             Self::Fs ,
-             Self::G  ,
-             Self::Gs ,
-             Self::A  ,
-             Self::As ,
-             Self::B  ,
+        vec![
+            Self::C,
+            Self::Cs,
+            Self::D,
+            Self::Ds,
+            Self::E,
+            Self::F,
+            Self::Fs,
+            Self::G,
+            Self::Gs,
+            Self::A,
+            Self::As,
+            Self::B,
         ]
     }
 }

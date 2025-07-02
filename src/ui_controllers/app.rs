@@ -1,28 +1,25 @@
-
 use std::io;
 
 use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind};
 use ratatui::{
+    DefaultTerminal, Frame,
     buffer::Buffer,
-    layout::{self, Constraint, Direction, Layout, Rect},
+    layout::{Constraint, Direction, Layout, Rect},
     style::Stylize,
     symbols::{border, line},
     text::{Line, Text},
     widgets::{Block, Paragraph, Widget},
-    DefaultTerminal, Frame,
 };
 
-use crate::{wave_widget::WaveWidget, WAVE_CHAR_HEIGHT};
+use crate::WAVE_CHAR_HEIGHT;
+use crate::ui_controllers::wave_widget::WaveWidget;
 
 #[derive(Default)]
 pub struct App {
     counter: u8,
     exit: bool,
     waves: WaveWidget,
-
 }
-
-
 
 impl App {
     // runs the application's main loop until the user quits
@@ -45,11 +42,10 @@ impl App {
             ])
             .split(frame.area());
 
-        frame.render_widget(self, chunks[0]); 
+        frame.render_widget(self, chunks[0]);
 
         frame.render_widget(&self.waves, chunks[1]);
     }
-
 
     // updates the application's state based on user input
     fn handle_events(&mut self) -> io::Result<()> {
@@ -63,26 +59,23 @@ impl App {
         };
         Ok(())
     }
-    
+
     //Handle events related to keystrokes
     fn handle_key_event(&mut self, key_event: KeyEvent) {
         match key_event.code {
             KeyCode::Char('q') => self.exit(),
-            KeyCode::Left=> self.decrement_counter(),
+            KeyCode::Left => self.decrement_counter(),
             KeyCode::Right => {
                 let this = &mut *self;
                 this.waves.next_wave();
-            },
+            }
             _ => {}
         }
     }
 
-
     fn exit(&mut self) {
         self.exit = true;
     }
-
-    
 
     fn decrement_counter(&mut self) {
         self.counter -= 1;
@@ -92,16 +85,13 @@ impl App {
 impl Widget for &App {
     fn render(self, area: Rect, buf: &mut Buffer) {
         let title = Line::from(" VVaves ".bold());
-        let instructions = Line::from(vec![
-            " Quit ".into(),
-            "<Q> ".blue().bold(),
-        ]);
+        let instructions = Line::from(vec![" Quit ".into(), "<Q> ".blue().bold()]);
         let block = Block::bordered()
             .title(title.centered())
             .title_bottom(instructions.centered())
-            .border_set(border::Set{    
+            .border_set(border::Set {
                 top_left: line::THICK.horizontal,
-                top_right: line::THICK.horizontal,    
+                top_right: line::THICK.horizontal,
                 bottom_left: "",
                 bottom_right: "",
                 vertical_left: "",
