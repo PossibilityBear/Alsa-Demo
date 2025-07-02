@@ -1,3 +1,5 @@
+use std::vec;
+
 #[allow(dead_code)]
 pub enum Notes {
     C,
@@ -31,5 +33,21 @@ impl Notes {
             Self::As =>466.16,
             Self::B => 493.88,
         }
+    }
+
+    pub fn scale() -> Vec<Notes> {
+        vec![Self::C  ,
+             Self::Cs ,
+             Self::D  ,
+             Self::Ds ,
+             Self::E  ,
+             Self::F  ,
+             Self::Fs ,
+             Self::G  ,
+             Self::Gs ,
+             Self::A  ,
+             Self::As ,
+             Self::B  ,
+        ]
     }
 }

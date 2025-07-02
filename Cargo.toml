@@ -5,4 +5,6 @@ edition = "2024"
 
 [dependencies]
 alsa = "0.9.1"
+crossterm = "0.29.0"
+ratatui = "0.29.0"
 textplots = "0.8.7"
