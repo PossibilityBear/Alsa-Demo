@@ -52,7 +52,7 @@ impl App {
         match event::read()? {
             // it's important to check that the event is a key press event as
             // crossterm also emits key release and repeat events on Windows.
-            Event::Key(key_event) if key_event.kind == KeyEventKind::Press => {
+            Event::Key(key_event) => {
                 self.handle_key_event(key_event)
             }
             _ => {}
@@ -62,15 +62,21 @@ impl App {
 
     //Handle events related to keystrokes
     fn handle_key_event(&mut self, key_event: KeyEvent) {
-        match key_event.code {
-            KeyCode::Char('q') => self.exit(),
-            KeyCode::Left => self.decrement_counter(),
-            KeyCode::Right => {
-                let this = &mut *self;
-                this.waves.next_wave();
+        if key_event.kind == KeyEventKind::Press {
+            match key_event.code {
+                KeyCode::Char('q') => self.exit(),
+                // KeyCode::Left => self.decrement_counter(),
+                KeyCode::Char('q') => {
+                    
+                }
+                KeyCode::Right => {
+                    let this = &mut *self;
+                    this.waves.next_wave();
+                }
+                _ => {}
             }
-            _ => {}
         }
+
     }
 
     fn exit(&mut self) {

@@ -34,3 +34,8 @@ impl Default for SinWave {
 pub fn gen_sin_wave(settings: &GenWaveSettings, x: f32) -> i16 {
     (settings.amp * (((2.0 * PI * settings.freq) / settings.sample_rate as f32) * x).sin()) as i16
 }
+
+//get the period length for frame sizing
+pub fn gen_sin_wave_period(settings: &GenWaveSettings) -> usize {
+   (settings.sample_rate as f32  / settings.freq ) as usize
+}

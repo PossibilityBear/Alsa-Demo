@@ -59,4 +59,47 @@ impl Playback {
         // Wait for the stream to finish playback.
         self.pcm.drain().unwrap();
     }
+
+
+
+    /* Psuedocode for creating a shared channel that will be written
+    to and played from immediately.
+
+
+    const frame_size;
+
+    struct Frame {
+        a buffer for a single 'frame' of pcm wave data, frame size will
+        control latency, smaller frame ==> lower latency, but higher cpu cost
+        Frame size must also be divisable by the period of the wave 
+        or there will be audible 'seams'   
+    }
+
+    fn create_playback_channel ()  -> frames_writer handle {
+        let frames_writer, frames_reader = create a new tokio channel<Frame>
+        let playback = create a new playback which will read from the channel 
+            until the channel is empty
+        return frames_writer handle
+    }
+
+    fn input_handler() (
+        let frames_writer = create_playback_channel ();
+        let wave = new wave()
+        i = 0
+        while (pressed) {
+            pressed = check if pressed
+            frame = new empty frame
+            for x in i .. i + frame_size {
+                frame.append(wave.wave_func(x))
+            }
+            cloned_writer = clone frames_writer
+            cloned_writer.send(frame)
+        }
+    
+    )
+    
+    
+    
+    
+    */
 }
