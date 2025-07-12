@@ -2,9 +2,9 @@ mod playback;
 mod waves;
 mod notes;
 
-use crate::waves::sin_wave::{gen_sin_wave, gen_sin_wave_period};
+use crate::waves::sin_wave::{SinWave};
 use crate::waves::*;
-
+use crate::playback::Playback;
 use alsa::pcm::{Access, Format, HwParams, PCM, State};
 use alsa::{Direction, ValueOr};
 
@@ -15,92 +15,20 @@ use tokio::sync::{mpsc::{self, Receiver}};
 
 use tokio::task::futures;
 
+const SAMPLE_RATE: u32 = 44_100;
 
 #[tokio::main]
 async fn main() {
-    const SAMPLE_RATE: u32 = 44100;
-    let wave = GenWave::new(
-        waves::sin_wave::gen_sin_wave,
-        GenWaveSettings {
-            freq: 440.0,
-            dur: 1.0,
-            amp: 8000.0,
-            sample_rate: 41000,
-        },
+    let wave = SinWave::new(
+        WaveSettings::new(440.0, 8000.0)
     );
 
-    let pcm = PCM::new("default", Direction::Playback, false).unwrap();
-    // Open default playback device
-    {
-        // Set hardware parameters: 44,100 Hz / Mono / 16 bit
-        let hwp = HwParams::any(&pcm).unwrap();
-        hwp.set_channels(1).unwrap();
-        hwp.set_rate(SAMPLE_RATE, ValueOr::Nearest).unwrap();
-        hwp.set_format(Format::s16()).unwrap();
-        hwp.set_access(Access::RWInterleaved).unwrap();
-        pcm.hw_params(&hwp).unwrap();
+    let mut pb = Playback::new();
 
-        // Make sure we don't start the stream too early
-        let hwp = pcm.hw_params_current().unwrap();
-        let swp = pcm.sw_params_current().unwrap();
-        swp.set_start_threshold(hwp.get_buffer_size().unwrap())
-            .unwrap();
-        pcm.sw_params(&swp).unwrap();
-    }
-
-    let io = pcm.io_i16().unwrap();
-
-    let num_samples = wave.settings.dur as u32 * SAMPLE_RATE;
-
-    let frame_size = gen_sin_wave_period(&wave.settings);
-
-    let num_frames = num_samples / frame_size as u32;
-    let mut frame_buf = Vec::<i16>::with_capacity(frame_size as usize);
-
-    println!("frame size: {}", frame_size);
-    // generate a single 'tile-able' frame
-    let mut x = 0;
-    while x < frame_size {
-        let sample = wave.call_wave_func(x as f32) as i16;
-        frame_buf.push(sample);
-        x += 1;
-    }
-
-    let mut i = 0;
-    while i < num_frames {
-        for sample in &frame_buf {
-             assert_eq!(io.writei(&[*sample]).unwrap(), 1);
-        }
-
-        i += 1;
-
-    }
-    
-
-    // let mut i = 0;
-    // while i < num_samples {
-    //     let sample = wave.call_wave_func(i as f32) as i16;
-    //     // could optimize to write in chunks but probably don't need to yet
-    //     assert_eq!(io.writei(&[sample]).unwrap(), 1);
-    //     i += 1;
-    // }
-
-    if pcm.state() != State::Running {
-        pcm.start().unwrap()
-    };
-
-    // write some more after starting playback 
-    // let mut i = 0;
-    // while i < num_samples {
-    //     let sample = wave.call_wave_func(i as f32) as i16;
-    //     // could optimize to write in chunks but probably don't need to yet
-    //     assert_eq!(io.writei(&[sample]).unwrap(), 1);
-    //     i += 1;
-    // }
-
-
-    sleep(Duration::from_secs(5));
-    // pcm.drain();
+    pb.write_wave(&wave, 2.0);
+    pb.play();
+    pb.write_wave(&wave, 2.0);
+    pb.drain();
 }
 
 // use std::{thread::sleep, time::Duration};

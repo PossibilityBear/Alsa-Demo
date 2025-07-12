@@ -1,8 +1,10 @@
-use crate::waves::Wave;
+use std::time::Duration;
+
+use crate::waves::{Wave, WaveFunc};
+use crate::SAMPLE_RATE;
 use alsa::pcm::{Access, Format, HwParams, PCM, State};
 use alsa::{Direction, ValueOr};
 
-const SAMPLE_RATE: u32 = 44_100;
 
 pub struct Playback {
     pcm: PCM,
@@ -36,70 +38,40 @@ impl Playback {
     //     assert_eq!(io.writei(&buf[..]).unwrap(), 1);
     // }
 
-    pub fn write_wave<T: Wave>(&mut self, wave: &T) {
+    pub fn write_wave<W: Wave>(&mut self, wave: &W, duration: f32) {
         let io = self.pcm.io_i16().unwrap();
 
-        let num_samples = wave.duration() as u32 * SAMPLE_RATE;
+        let num_samples = duration as u32 * SAMPLE_RATE;
 
-        // let mut buf = Vec::<i16>::with_capacity(buf_size as usize);
+        let frame_size = wave.get_period();    
+        
+        let num_frames = num_samples / frame_size as u32;
+
+        let mut frame_buf = Vec::<i16>::with_capacity(frame_size as usize);
+        
+        let mut x = 0;
+        while x < frame_size {
+            let sample = wave.call_wave_func(x as f32) as i16;
+            frame_buf.push(sample);
+            x += 1;
+        }
+
         let mut i = 0;
-        while i < num_samples {
-            let sample = wave.wave_func(i as f32, SAMPLE_RATE) as i16;
-            // could optimize to write in chunks but probably don't need to yet
-            assert_eq!(io.writei(&[sample]).unwrap(), 1);
+        while i < num_frames {
+            for sample in &frame_buf {
+                assert_eq!(io.writei(&[*sample]).unwrap(), 1);
+            }
             i += 1;
         }
     }
 
     pub fn play(&mut self) {
-        // In case the buffer was larger than 2 seconds, start the stream manually.
         if self.pcm.state() != State::Running {
             self.pcm.start().unwrap()
         };
-        // Wait for the stream to finish playback.
+    }
+
+    pub fn drain(&mut self) {
         self.pcm.drain().unwrap();
     }
-
-
-
-    /* Psuedocode for creating a shared channel that will be written
-    to and played from immediately.
-
-
-    const frame_size;
-
-    struct Frame {
-        a buffer for a single 'frame' of pcm wave data, frame size will
-        control latency, smaller frame ==> lower latency, but higher cpu cost
-        Frame size must also be divisable by the period of the wave 
-        or there will be audible 'seams'   
-    }
-
-    fn create_playback_channel ()  -> frames_writer handle {
-        let frames_writer, frames_reader = create a new tokio channel<Frame>
-        let playback = create a new playback which will read from the channel 
-            until the channel is empty
-        return frames_writer handle
-    }
-
-    fn input_handler() (
-        let frames_writer = create_playback_channel ();
-        let wave = new wave()
-        i = 0
-        while (pressed) {
-            pressed = check if pressed
-            frame = new empty frame
-            for x in i .. i + frame_size {
-                frame.append(wave.wave_func(x))
-            }
-            cloned_writer = clone frames_writer
-            cloned_writer.send(frame)
-        }
-    
-    )
-    
-    
-    
-    
-    */
 }

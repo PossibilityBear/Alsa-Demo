@@ -1,41 +1,41 @@
 use crate::notes::Notes;
-use crate::waves::{GenWaveSettings, Wave};
+use crate::waves::{WaveSettings, Wave, WaveFunc};
 use std::f32::consts::PI;
 
-#[derive(Debug)]
+
+
 pub struct SinWave {
-    pub frequency: f32,
-    pub amplitude: f32,
-    pub duration: f32,
+    func: WaveFunc
+}
+
+impl SinWave {
+    pub fn new(settings: WaveSettings) -> Self {
+        SinWave {
+            func: WaveFunc::new(Self::sin_wave, Self::sin_wave_period, settings),
+        }
+    }
+
+    fn sin_wave(settings: &WaveSettings, x: f32) -> i16 {
+        (settings.amp * (((2.0 * PI * settings.freq) / settings.sample_rate as f32) * x).sin()) as i16
+    }
+
+    //get the period length for frame sizing
+    fn sin_wave_period(settings: &WaveSettings) -> usize {
+        println!("Sample rate {} / Freq {}", settings.sample_rate, settings.freq);
+        (settings.sample_rate as f32  / settings.freq ) as usize
+    }
 }
 
 impl Wave for SinWave {
-    fn wave_func(&self, x: f32, sample_rate: u32) -> f32 {
-        self.amplitude * (((2.0 * PI * self.frequency) / sample_rate as f32) * x).sin()
+    fn call_wave_func(&self, x: f32) -> i16 {
+        self.func.call_wave_func(x)
     }
 
-    fn duration(self: &Self) -> f32 {
-        self.duration
+    fn get_period(&self) -> usize {
+        self.func.get_period()
     }
-}
 
-impl Default for SinWave {
-    fn default() -> Self {
-        SinWave {
-            // 240 Min freq with my shiddy speakers
-            // 30 min freq with headset
-            frequency: Notes::A.freq(),
-            amplitude: 8_000.0, // with i_16 max is ((2^16) / 2) -1 = 32,767
-            duration: 2.0,
-        }
+    fn set_sample_rate(&mut self, sample_rate: u32) {
+        self.func.set_sample_rate(sample_rate);
     }
-}
-
-pub fn gen_sin_wave(settings: &GenWaveSettings, x: f32) -> i16 {
-    (settings.amp * (((2.0 * PI * settings.freq) / settings.sample_rate as f32) * x).sin()) as i16
-}
-
-//get the period length for frame sizing
-pub fn gen_sin_wave_period(settings: &GenWaveSettings) -> usize {
-   (settings.sample_rate as f32  / settings.freq ) as usize
 }
