@@ -1,5 +1,6 @@
 use std::io;
 
+use crate::{playback::Playback, waves::{sin_wave::SinWave, Wave, WaveSettings}};
 use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind};
 use ratatui::{
     DefaultTerminal, Frame,
@@ -16,7 +17,7 @@ use crate::ui_controllers::wave_widget::WaveWidget;
 
 #[derive(Default)]
 pub struct App {
-    counter: u8,
+    playback: Playback,
     exit: bool,
     waves: WaveWidget,
 }
@@ -26,7 +27,12 @@ impl App {
     pub fn run(&mut self, terminal: &mut DefaultTerminal) -> io::Result<()> {
         while !self.exit {
             terminal.draw(|frame| self.draw(frame))?;
-            self.handle_events()?;
+            self.handle_events()?; 
+            self.playback.write_wave(
+                &(Box::new(SinWave::new(WaveSettings::new(0.0, 0.0))) as Box<dyn Wave>),
+                1.0
+            );
+            self.playback.play();
         }
         Ok(())
     }
@@ -66,25 +72,38 @@ impl App {
             match key_event.code {
                 KeyCode::Char('q') => self.exit(),
                 // KeyCode::Left => self.decrement_counter(),
-                KeyCode::Char('q') => {
-                    
-                }
                 KeyCode::Right => {
                     let this = &mut *self;
                     this.waves.next_wave();
                 }
-                _ => {}
+                KeyCode::Char('a') => {
+                    // play the wave while held
+                    self.playback.write_wave(self.waves.wave(), 1.0);
+                    self.playback.play();
+                },
+                _ => {
+                    // self.playback.write_wave(
+                    //     &(Box::new(SinWave::new(WaveSettings::new(0.0, 0.0))) as Box<dyn Wave>),
+                    //     1.0
+                    // );
+                    // self.playback.play();
+                }
             }
-        }
+        } 
+        // else if key_event.kind == KeyEventKind::Release {
+        //     match key_event.code {
+        //         KeyCode::Char('a') => {
+        //             // stop playing the note a
+        //             println!("stoping note 'A'");
+        //         }
+        //         _ => {}
+        //     }
+        // }
 
     }
 
     fn exit(&mut self) {
         self.exit = true;
-    }
-
-    fn decrement_counter(&mut self) {
-        self.counter -= 1;
     }
 }
 

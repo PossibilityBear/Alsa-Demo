@@ -13,43 +13,36 @@ use ratatui::{
 
 use crate::{
     notes::Notes,
-    waves::{GenWave, GenWaveSettings, sin_wave::gen_sin_wave},
+    waves::{Wave, WaveSettings, sin_wave::SinWave},
 };
 use textplots::{self, AxisBuilder, Chart, LabelBuilder, LineStyle, Plot, Shape};
 
-#[derive(Debug)]
 pub struct WaveWidget {
-    pub waves: Vec<GenWave>,
+    pub waves: Vec<Box<dyn Wave>>,
     pub index: usize,
 }
 
 impl Default for WaveWidget {
     fn default() -> Self {
-        let waves = Notes::scale()
-            .into_iter()
-            .map(|note| {
-                GenWave::new(
-                    gen_sin_wave,
-                    GenWaveSettings {
-                        freq: note.freq(),
-                        dur: 2.0,
-                        amp: 8000.0,
-                        sample_rate: 41000,
-                    },
-                )
-            })
-            .collect();
+        let notes = Notes::scale();
+        let mut waves = Vec::<Box<dyn Wave>>::with_capacity(notes.capacity());
+        for note in notes {
+            let wave = SinWave::new(
+                WaveSettings::new(note.freq(), 8000.0)
+            );
+            waves.push(Box::new(wave));
+        }
 
         Self { waves, index: 0 }
     }
 }
 
-impl WaveWidget {
+impl WaveWidget{
     pub fn next_wave(&mut self) {
         self.index += 1;
     }
 
-    pub fn wave(&self) -> &GenWave {
+    pub fn wave(&self) -> &Box<dyn Wave>{
         &self.waves[self.index]
     }
 }

@@ -10,8 +10,9 @@ pub struct Playback {
     pcm: PCM,
 }
 
-impl Playback {
-    pub fn new() -> Playback {
+
+impl Default for Playback {
+    fn default() -> Self {
         let pcm = PCM::new("default", Direction::Playback, false).unwrap();
         // Open default playback device
         {
@@ -32,13 +33,10 @@ impl Playback {
         }
         Playback { pcm }
     }
+}
 
-    // fn _write_buf(&mut self, buf: &[i16]) {
-    //     let io = self.pcm.io_i16().unwrap();
-    //     assert_eq!(io.writei(&buf[..]).unwrap(), 1);
-    // }
-
-    pub fn write_wave<W: Wave>(&mut self, wave: &W, duration: f32) {
+impl Playback {
+    pub fn write_wave(&mut self, wave: &Box<dyn Wave>, duration: f32) {
         let io = self.pcm.io_i16().unwrap();
 
         let num_samples = duration as u32 * SAMPLE_RATE;
@@ -46,6 +44,7 @@ impl Playback {
         let frame_size = wave.get_period();    
         
         let num_frames = num_samples / frame_size as u32;
+        println!("frame size {0}", frame_size);
 
         let mut frame_buf = Vec::<i16>::with_capacity(frame_size as usize);
         
